@@ -1,54 +1,59 @@
 # v2ray config collector
 <a href="https://github.com/NakuTenshi/v2ray_config_collector/">English</a>
 
-فایل `collect.py` یک اسکریپت پایتون است که پیکربندی‌های (configs) v2ray را از منابع داده شده در `raw.githubusercontent.com` جمع‌آوری کرده و آن‌ها را از طریق TCP handshake تست می‌کند.
-
+اسکریپت `collect.py` کانفیگ‌های v2ray (vmess/vless/trojan/ss/hysteria/etc.) را از ۸۷ منبع تأیید شده در `raw.githubusercontent.com` جمع‌آوری می‌کند، آن‌ها را با `python_v2ray` پارس می‌کند و سرورهای قابل دسترس را از طریق TCP handshake فیلتر می‌کند. کانفیگ‌های باقی‌مانده در `./configs/configs.txt` ذخیره می‌شوند.
 
 ## نحوه استفاده
-: قبل از هر چیزی شما باید این ریپو رو کلون کنید 
+
+این ریپو را کلون کنید:
 
 ```bash
-git clone https://github.com/NakuTenshi/v2ray_config_collector ; 
+git clone https://github.com/NakuTenshi/v2ray_config_collector
 cd v2ray_config_collector
 ```
 
-: سپس شما نیاز دارید کتابخانه های مورد نیاز اسکریپت را دانلود کنید
+کتابخانه‌های مورد نیاز را نصب کنید:
 
-``` bash 
+```bash
 pip3 install -r requirements.txt
 ```
 
-
-: بعد از همه چیز شما میتونید به راحتی این اسکریپت را اجرا کنید
+اسکریپت را اجرا کنید:
 
 ```bash
 python3 collect.py
 ```
-لذت ببرید
 
+## نحوه کار
+
+1. لینک‌های منابع را از `sources.txt` (۸۷ منبع تأیید شده) می‌خواند
+2. برای هر منبع یک thread جداگانه برای دریافت همزمان کانفیگ‌ها ایجاد می‌کند
+3. هر خط را با `python_v2ray.config_parser.parse_uri()` پارس می‌کند
+4. دسترسی‌پذیری را با TCP handshake (تایم‌اوت ۲ ثانیه) تست می‌کند
+5. کانفیگ‌های قابل دسترس را به `./configs/configs.txt` اضافه می‌کند
+
+### پروتکل‌های پشتیبانی شده
+
+`vmess` · `vless` · `trojan` · `shadowsocks` · `socks` · `wireguard` · `hysteria` · `hysteria2` · `hy2`
 
 ## نوت
 
-> فایل ``` sources.txt ``` باید کنار فایل ```collect.py``` در یک مسیر باشند
+> فایل `sources.txt` باید در کنار فایل `collect.py` باشد
 
-> اگه شما میخواید یک سورس دیگری را مدنظر دارید میخواید کانفیگ های ان هم تست شود, به راحتی میتوانید لینک ان را به  ``` sources.txt ``` اضافه کنید
+> برای اضافه کردن منابع جدید، لینک را به `sources.txt` اضافه کنید (هر خط یک لینک، باید به یک لیست کانفیگ متنی در `raw.githubusercontent.com` اشاره کند)
 
-> فایل ``` raw_sources.txt ``` سورس هایی هستن که هنوز تست نشدن
+> خطاهای پردازنشده thread‌های worker در فایل `errors.log` ثبت می‌شوند
 
+## ریز نکته‌ها
 
-## ریز‌نکته‌ها
-
-
-بعد از جمع‌آوری همه‌ی کانفیگ‌ها، ممکن است تعداد آن‌ها از **۱۰۰۰** مورد بیشتر شود و اضافه کردن آن‌ها به نسخه‌ی موبایل **V2Ray** مشکل‌ساز شود.
-
-بنابراین می‌توانید فایل `./configs/configs.txt` را با استفاده از یک دستور، به چند بخش تقسیم کنید.
+بعد از جمع‌آوری، اگر تعداد کانفیگ‌ها بیشتر از ۱۰۰۰ شد (اضافه کردن به نسخه موبایل سخت می‌شود)، خروجی را تقسیم کنید:
 
 ```bash
-split -l 1000 -d --additional-suffix=.txt configs.txt config_
+split -l 1000 -d --additional-suffix=.txt configs/configs.txt config_
 ```
 
-خروجی کامند همچین شکلی خواهد بود :
+خروجی:
 
-```text 
+```text
 config_00.txt  config_01.txt  config_02.txt  config_03.txt
-  ```
+```
