@@ -1,4 +1,4 @@
-# v2ray config collector
+# v2forge
 <a href="https://github.com/NakuTenshi/v2ray_config_collector/">English</a>
 
 اسکریپت `collect.py` کانفیگ‌های v2ray (vmess/vless/trojan/ss/hysteria/etc.) را از ۸۷ منبع تأیید شده در `raw.githubusercontent.com` جمع‌آوری می‌کند، آن‌ها را با `python_v2ray` پارس می‌کند و سرورهای قابل دسترس را از طریق TCP handshake فیلتر می‌کند. کانفیگ‌های باقی‌مانده در `./configs/configs.txt` ذخیره می‌شوند.
