@@ -1,4 +1,4 @@
-# v2ray config collector
+# v2forge
 <a href="https://github.com/NakuTenshi/v2ray_config_collector/blob/main/README_FA.md">فارسی</a>
 
 The `collect.py` script collects v2ray configs (vmess/vless/trojan/ss/hysteria/etc.) from verified `raw.githubusercontent.com` subscription sources, parses them with `python_v2ray`, and filters down to reachable servers via TCP handshake. Surviving configs are saved to `./configs/configs.txt`.
