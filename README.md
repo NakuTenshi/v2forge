@@ -1,7 +1,7 @@
 # v2forge
-<a href="https://github.com/NakuTenshi/v2ray_config_collector/blob/main/README_FA.md">فارسی</a>
+<a href="https://github.com/NakuTenshi/v2ray_config_collector/blob/main/README_FA.md">فارسی</a> · <a href="https://github.com/NakuTenshi/v2ray_config_collector/blob/main/README_RU.md">Русский</a>
 
-The `collect.py` script collects v2ray configs (vmess/vless/trojan/ss/hysteria/etc.) from verified `raw.githubusercontent.com` subscription sources, parses them with `python_v2ray`, and filters down to reachable servers via TCP handshake. Surviving configs are saved to `./configs/configs.txt`.
+The `v2forge.py` script collects v2ray configs (vmess/vless/trojan/ss/hysteria/etc.) from verified `raw.githubusercontent.com` subscription sources, parses them with `python_v2ray`, and filters down to reachable servers via TCP handshake. Surviving configs are saved to `./configs/configs.txt`.
 
 ## How to use
 
@@ -21,7 +21,7 @@ pip3 install -r requirements.txt
 Run the script:
 
 ```bash
-python3 collect.py
+python3 v2forge.py
 ```
 
 ## How it works
@@ -38,7 +38,7 @@ python3 collect.py
 
 ## Note
 
-> `sources.txt` must be in the same directory as `collect.py`
+> `sources.txt` must be in the same directory as `v2forge.py`
 
 > To add your own sources, simply append a URL to `sources.txt` (one URL per line, must point to a plain-text config list on `raw.githubusercontent.com`)
 
