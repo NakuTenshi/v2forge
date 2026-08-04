@@ -14,7 +14,7 @@ from python_v2ray.config_parser import parse_uri
 _REMARK_EMOJIS = ["🧩", "✂️", "🔀", "🛡️", "🕵️", "🎭", "🚀", "⚡", "📡", "🌐", "🔒", "🔐", "🌊", "🔥", "🛸", "🐉", "🧬", "🌀", "☁️", "🦄"]
 _REMARK_NAME = "Telegram: @nakutenshii"
 
-def _rebrand_config(config: str) -> str:
+def rebrand_config(config: str) -> str:
     """Replace fragment/remark with random emoji + @nakutenshii.
     Uses parse_uri to identify protocol, then handles vmess (ps inside base64)
     and other protocols (#fragment) separately."""
@@ -40,13 +40,9 @@ def _rebrand_config(config: str) -> str:
 logging.disable(logging.WARNING)
 
 # --- Dedup state (hash-based for low memory) ---
-_configs_lock = threading.Lock()
-_configs_hashes = set()
+configs_hashes = set()
 
-def _hash_config(config: str, parsed=None) -> str:
-    """Hash config using parsed address+port+protocol for dedup.
-    Accepts pre-parsed result to avoid double-parsing.
-    Ignores remark/fragment and handles base64-encoded configs."""
+def hash_config(config: str, parsed=None) -> str:
     if parsed:
         canonical = f"{parsed.protocol}://{parsed.address}:{parsed.port}"
     else:
@@ -55,9 +51,9 @@ def _hash_config(config: str, parsed=None) -> str:
             canonical = f"{parsed.protocol}://{parsed.address}:{parsed.port}"
         else:
             canonical = config.split("#")[0]
-    return hashlib.sha256(canonical.encode()).hexdigest()
+    return hashlib.md5(canonical.encode()).hexdigest()
 
-def _load_existing_configs():
+def load_existing_configs():
     """Preload configs already in the file so previous runs aren't re-added."""
     path = "./configs/configs.txt"
     if os.path.exists(path):
@@ -65,22 +61,8 @@ def _load_existing_configs():
             for line in f:
                 line = line.strip()
                 if line:
-                    _configs_hashes.add(_hash_config(line))
+                    configs_hashes.add(hash_config(line))
 
-def _add_config_if_new(config: str, parsed=None) -> bool:
-    """Add config to file only if not already seen. Returns True if added.
-    Saves the rebranded version (random emoji + @nakutenshii as fragment).
-    Dedup is based on the original config before rebranding.
-    Accepts pre-parsed result to avoid double-parsing."""
-    h = _hash_config(config, parsed)
-    with _configs_lock:
-        if h in _configs_hashes:
-            return False
-        _configs_hashes.add(h)
-        saved = _rebrand_config(config)
-        with open("./configs/configs.txt", "a") as f:
-            f.write(f"{saved}\n")
-        return True
 
 def testSubscriptionConfigs(sub_url):
     global x , sources_done_length, sources_length
@@ -102,24 +84,29 @@ def testSubscriptionConfigs(sub_url):
                     parsed_config = parse_uri(config_uri=config)
 
                     if parsed_config:
-                        addr_port = (parsed_config.address, parsed_config.port)
-                        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client:
-                            client.settimeout(2.0)
-                            try:
-                                client.connect(addr_port)
-                                _add_config_if_new(config, parsed_config)
+                        config_hash = hash_config(config, parsed_config)
 
-                            except TimeoutError: # timeout
-                                continue
-                            except socket.gaierror: # could not resolve the domain
-                                continue
-                            except ConnectionRefusedError: # connection refuss
-                                continue
-                            except OSError: # No route to host (parsing problem)
-                                continue
+                        # Check dedup first — skip TCP test if already seen
+                        if config_hash not in configs_hashes:
+                            addr_port = (parsed_config.address, parsed_config.port)
+                            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client:
+                                client.settimeout(2.0)
+                                try:
+                                    client.connect(addr_port)
+                                    configs_hashes.add(config_hash)
+                                    saved = rebrand_config(config)
+                                    with open("./configs/configs.txt", "a") as f:
+                                        f.write(f"{saved}\n")
 
-                            # except requests.exceptions.ChunkedEncodingError:
-                            #     continue
+                                except TimeoutError: # timeout
+                                    continue
+                                except socket.gaierror: # could not resolve the domain
+                                    continue
+                                except ConnectionRefusedError: # connection refuss
+                                    continue
+                                except OSError: # No route to host (parsing problem)
+                                    continue
+
         except requests.exceptions.ChunkedEncodingError:
             # the source server dropped the chunked transfer mid-stream;
             # keep whatever configs we already collected from this source.
@@ -138,9 +125,8 @@ if __name__ == "__main__":
         if not os.path.exists("./configs"):
             os.mkdir("./configs")
 
-        _load_existing_configs()
 
-
+        load_existing_configs()
         with open("sources.txt" , "r") as f:
             source_urls = f.readlines()
             source_urls = list(set(source_urls))
