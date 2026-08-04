@@ -44,11 +44,11 @@ configs_hashes = set()
 
 def hash_config(config: str, parsed=None) -> str:
     if parsed:
-        canonical = f"{parsed.protocol}://{parsed.address}:{parsed.port}"
+        canonical = f"{parsed.protocol}://{parsed.address}:{parsed.port}/{parsed.path or ''}"
     else:
         parsed = parse_uri(config_uri=config)
         if parsed:
-            canonical = f"{parsed.protocol}://{parsed.address}:{parsed.port}"
+            canonical = f"{parsed.protocol}://{parsed.address}:{parsed.port}/{parsed.path or ''}"
         else:
             canonical = config.split("#")[0]
     return hashlib.md5(canonical.encode()).hexdigest()
@@ -84,28 +84,26 @@ def testSubscriptionConfigs(sub_url):
                     parsed_config = parse_uri(config_uri=config)
 
                     if parsed_config:
-                        config_hash = hash_config(config, parsed_config)
-
-                        # Check dedup first — skip TCP test if already seen
-                        if config_hash not in configs_hashes:
-                            addr_port = (parsed_config.address, parsed_config.port)
-                            with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client:
-                                client.settimeout(2.0)
-                                try:
-                                    client.connect(addr_port)
+                        addr_port = (parsed_config.address, parsed_config.port)
+                        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as client:
+                            client.settimeout(2.0)
+                            try:
+                                client.connect(addr_port)
+                                config_hash = hash_config(config, parsed_config)
+                                if config_hash not in configs_hashes:
                                     configs_hashes.add(config_hash)
                                     saved = rebrand_config(config)
                                     with open("./configs/configs.txt", "a") as f:
                                         f.write(f"{saved}\n")
 
-                                except TimeoutError: # timeout
-                                    continue
-                                except socket.gaierror: # could not resolve the domain
-                                    continue
-                                except ConnectionRefusedError: # connection refuss
-                                    continue
-                                except OSError: # No route to host (parsing problem)
-                                    continue
+                            except TimeoutError: # timeout
+                                continue
+                            except socket.gaierror: # could not resolve the domain
+                                continue
+                            except ConnectionRefusedError: # connection refuss
+                                continue
+                            except OSError: # No route to host (parsing problem)
+                                continue
 
         except requests.exceptions.ChunkedEncodingError:
             # the source server dropped the chunked transfer mid-stream;
