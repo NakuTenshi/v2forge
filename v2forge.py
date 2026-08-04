@@ -43,8 +43,19 @@ logging.disable(logging.WARNING)
 _configs_lock = threading.Lock()
 _configs_hashes = set()
 
-def _hash_config(config: str) -> str:
-    return hashlib.sha256(config.encode()).hexdigest()
+def _hash_config(config: str, parsed=None) -> str:
+    """Hash config using parsed address+port+protocol for dedup.
+    Accepts pre-parsed result to avoid double-parsing.
+    Ignores remark/fragment and handles base64-encoded configs."""
+    if parsed:
+        canonical = f"{parsed.protocol}://{parsed.address}:{parsed.port}"
+    else:
+        parsed = parse_uri(config_uri=config)
+        if parsed:
+            canonical = f"{parsed.protocol}://{parsed.address}:{parsed.port}"
+        else:
+            canonical = config.split("#")[0]
+    return hashlib.sha256(canonical.encode()).hexdigest()
 
 def _load_existing_configs():
     """Preload configs already in the file so previous runs aren't re-added."""
@@ -56,11 +67,12 @@ def _load_existing_configs():
                 if line:
                     _configs_hashes.add(_hash_config(line))
 
-def _add_config_if_new(config: str) -> bool:
+def _add_config_if_new(config: str, parsed=None) -> bool:
     """Add config to file only if not already seen. Returns True if added.
     Saves the rebranded version (random emoji + @nakutenshii as fragment).
-    Dedup is based on the original config before rebranding."""
-    h = _hash_config(config)
+    Dedup is based on the original config before rebranding.
+    Accepts pre-parsed result to avoid double-parsing."""
+    h = _hash_config(config, parsed)
     with _configs_lock:
         if h in _configs_hashes:
             return False
@@ -95,7 +107,7 @@ def testSubscriptionConfigs(sub_url):
                             client.settimeout(2.0)
                             try:
                                 client.connect(addr_port)
-                                _add_config_if_new(config)
+                                _add_config_if_new(config, parsed_config)
 
                             except TimeoutError: # timeout
                                 continue
